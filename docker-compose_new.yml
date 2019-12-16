@@ -1,0 +1,179 @@
+version: '3.7'
+services:
+  projectcanary-nginx:
+    restart: always
+    image: 127.0.0.1:5000/projectcanary-nginx:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8585/health"]
+      interval: 30s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+    build:
+      dockerfile: Dockerfile
+      context: dockerfiles/nginx
+    ports:
+      - 80:8585
+    depends_on:
+      - projectcanary-app
+    links:
+      - projectcanary-app
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+        delay: 1s
+        max_attempts: 50
+        window: 120s
+    networks:
+      - backendnet
+  projectcanary-app:
+    build:
+      dockerfile: dockerfiles/projectcanary/Dockerfile
+      context: .
+    image: 127.0.0.1:5000/projectcanary-app:latest
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6000/api/v1/health"]
+      interval: 30s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+    env_file:
+      - .env.docker
+    sysctls:
+      net.core.somaxconn: 1024
+    ports:
+      - 6000
+    networks:
+      - backendnet
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    deploy:
+      replicas: 4
+      update_config:
+        parallelism: 2
+        delay: 2s
+        order: stop-first
+        failure_action: rollback
+      #placement:
+        #constraints: [node.role == worker]
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+        max_attempts: 10
+        window: 120s
+  projectcanary-worker:
+    build:
+      dockerfile: dockerfiles/projectcanary_worker/Dockerfile
+      context: .
+    image: 127.0.0.1:5000/projectcanary-app-worker:latest
+    restart: always
+    env_file:
+      - .env.docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2500/api/v1/health"]
+      interval: 30s
+      timeout: 2s
+      retries: 3
+      start_period: 40s
+    ports:
+      - 2500
+    networks:
+      - workernet
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+        failure_action: rollback
+        #placement:
+        #constraints: [node.role == worker]
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 120s
+#  projectcanary-redis:
+#      build:
+#        dockerfile: Dockerfile
+#        context: dockerfiles/redis
+#      image: 127.0.0.1:5000/projectcanary-redis:latest
+#      restart: always
+#      ports:
+#        - 6379
+#      networks:
+#        - dbnet
+#     ## sysctls:
+#       ## - net.core.somaxconn=65536
+#      ulimits:
+#        memlock:
+#          soft: -1
+#          hard: -1
+#        nofile:
+#          soft: 65536
+#          hard: 65536
+#        nproc:
+#          soft: 65536
+#          hard: 65536
+#        core:
+#          soft: 65536
+#          hard: 65536
+#      deploy:
+#        replicas: 1
+#        placement:
+#          constraints: [node.role == manager]
+#        update_config:
+#          parallelism: 1
+#        restart_policy:
+#          condition: on-failure
+#          delay: 1s
+#          max_attempts: 30
+#          window: 120s
+#      volumes:
+#        - redis-data:/var/lib/redis/data
+#  projectcanary-postgres:
+#      restart: always
+#      image: 127.0.0.1:5000/projectcanary-postgres:latest
+#      build:
+#        dockerfile: dockerfiles/postgres/Dockerfile
+#        context: .
+#      ports:
+#        - 5432:5432
+#      volumes:
+#        - pg-data:/var/lib/postgresql/data
+#      networks:
+#        - dbnet
+#      environment:
+#        - POSTGRES_DB=canary
+#        - POSTGRES_USER=darmitage
+#        - POSTGRES_PASSWORD=Terrafirma1
+#      deploy:
+#        replicas: 1
+#        update_config:
+#          parallelism: 2
+#        restart_policy:
+#          condition: on-failure
+#          delay: 1s
+#          max_attempts: 3
+#          window: 120s
+networks:
+  backendnet:
+  workernet:
+#  dbnet:
+#volumes:
+#  redis-data:
+#  pg-data:

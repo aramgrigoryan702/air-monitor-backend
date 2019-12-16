@@ -1,0 +1,1 @@
+docker run -it --rm jfcoz/postgresqltuner --host=pkompoe rojectcanary.c9k4o2ye2hkg.us-east-2.rds.amazonaws.com --user=darmitage --password=Terrafirma1 --database=canary
