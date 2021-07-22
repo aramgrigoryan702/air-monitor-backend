@@ -86,7 +86,7 @@
     "v8-compile-cache": "2.0.2",
     "validator": "10.8.0",
     "windrose": "2.1.0",
-    "xlsx": "0.14.1",
+    "xlsx": "0.17.0",
     "yamlparser": "0.0.2"
   },
   "devDependencies": {
