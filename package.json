@@ -45,7 +45,7 @@
     "influx": "5.0.0-alpha.4",
     "install": "0.12.2",
     "jsonfile": "5.0.0",
-    "jsonwebtoken": "8.3.0",
+    "jsonwebtoken": "9.0.0",
     "jwk-to-pem": "2.0.1",
     "klaw-sync": "6.0.0",
     "knex": "0.20.2",
